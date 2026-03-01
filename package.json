@@ -1,5 +1,5 @@
 {
-  "name": "wsocket-io",
+  "name": "@wsocket-io/sdk",
   "version": "0.1.0",
   "description": "wSocket JavaScript SDK — Realtime Pub/Sub client",
   "main": "dist/index.js",

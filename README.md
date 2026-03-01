@@ -2,19 +2,19 @@
 
 Official JavaScript/TypeScript SDK for [wSocket](https://wsocket.io) — Realtime Pub/Sub over WebSockets.
 
-[![npm](https://img.shields.io/npm/v/wsocket-io)](https://www.npmjs.com/package/wsocket-io)
+[![npm](https://img.shields.io/npm/v/@wsocket-io/sdk)](https://www.npmjs.com/package/@wsocket-io/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Installation
 
 ```bash
-npm install wsocket-io
+npm install @wsocket-io/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { createClient } from 'wsocket-io';
+import { createClient } from '@wsocket-io/sdk';
 
 const client = createClient('wss://your-server.com', 'your-api-key');
 client.connect();
