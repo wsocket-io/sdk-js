@@ -1,10 +1,16 @@
 {
   "name": "@wsocket-io/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "wSocket JavaScript SDK — Realtime Pub/Sub client",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md", "LICENSE"],
+  "jsdelivr": "dist/wsocket.min.js",
+  "unpkg": "dist/wsocket.min.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/wsocket-io/sdk-js.git"
@@ -15,16 +21,24 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build",
+    "build:cdn": "node build-cdn.js",
+    "build:all": "npm run build && npm run build:cdn",
+    "prepublishOnly": "npm run build:all",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["websocket", "pubsub", "realtime", "wsocket"],
+  "keywords": [
+    "websocket",
+    "pubsub",
+    "realtime",
+    "wsocket"
+  ],
   "license": "MIT",
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "esbuild": "^0.27.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5",
     "@types/node": "^22.12.0",

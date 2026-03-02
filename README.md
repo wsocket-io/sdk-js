@@ -11,6 +11,12 @@ Official JavaScript/TypeScript SDK for [wSocket](https://wsocket.io) — Realtim
 npm install @wsocket-io/sdk
 ```
 
+### CDN (Browser)
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@wsocket-io/sdk@latest"></script>
+```
+
 ## Quick Start
 
 ```typescript
