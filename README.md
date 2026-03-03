@@ -22,7 +22,7 @@ npm install @wsocket-io/sdk
 ```typescript
 import { createClient } from '@wsocket-io/sdk';
 
-const client = createClient('wss://your-server.com', 'your-api-key');
+const client = createClient('wss://node00.wsocket.online', 'your-api-key');
 client.connect();
 
 const chat = client.channel('chat:general');
