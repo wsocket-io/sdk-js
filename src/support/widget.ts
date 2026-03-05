@@ -20,6 +20,9 @@ import { getStrings, relativeTime, type WidgetStrings } from './i18n.js';
 const ICON_CHAT = '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>';
 const ICON_CLOSE = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const ICON_SEND = '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
+const ICON_AVATAR = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.73 0-5.16-1.39-6.57-3.5C6.95 14.56 10 13.5 12 13.5s5.05 1.06 6.57 2.99C17.16 18.61 14.73 20 12 20z"/></svg>';
+const ICON_BOT = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 110 2h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 110-2h1a7 7 0 017-7h1V5.73A2 2 0 0112 2zM9.5 14a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm5 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/></svg>';
+const ICON_RESIZE = '<svg viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" opacity="0.4" d="M14 14H12V12H14V14ZM14 10H12V8H14V10ZM10 14H8V12H10V14ZM14 6H12V4H14V6ZM10 10H8V8H10V10ZM6 14H4V12H6V14Z"/></svg>';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -85,6 +88,25 @@ export class SupportWidget {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private audioCtx: AudioContext | null = null;
+
+  // Drag state
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private windowX = 0;
+  private windowY = 0;
+  private hasDragMoved = false;
+  private dragBound: { move: (e: MouseEvent | TouchEvent) => void; end: (e: MouseEvent | TouchEvent) => void } | null = null;
+
+  // Resize state
+  private isResizing = false;
+  private resizeStartX = 0;
+  private resizeStartY = 0;
+  private resizeStartW = 380;
+  private resizeStartH = 520;
+  private currentW = 380;
+  private currentH = 520;
+  private resizeBound: { move: (e: MouseEvent | TouchEvent) => void; end: (e: MouseEvent | TouchEvent) => void } | null = null;
 
   constructor(config: SupportWidgetConfig) {
     this.config = config;
@@ -176,6 +198,10 @@ export class SupportWidget {
     const header = document.createElement('div');
     header.className = 'ws-header';
 
+    // Drag handle area
+    header.addEventListener('mousedown', (e) => this.initDrag(e));
+    header.addEventListener('touchstart', (e) => this.initDrag(e), { passive: false });
+
     const headerInfo = document.createElement('div');
     headerInfo.className = 'ws-header-info';
 
@@ -209,6 +235,14 @@ export class SupportWidget {
     this.chatView = this.buildChatView();
     this.chatView.style.display = 'none';
     this.window.appendChild(this.chatView);
+
+    // Resize grip
+    const resizeGrip = document.createElement('div');
+    resizeGrip.className = 'ws-resize-grip';
+    resizeGrip.innerHTML = ICON_RESIZE;
+    resizeGrip.addEventListener('mousedown', (e) => this.initResize(e));
+    resizeGrip.addEventListener('touchstart', (e) => this.initResize(e), { passive: false });
+    this.window.appendChild(resizeGrip);
 
     // Powered by
     const powered = document.createElement('div');
@@ -382,11 +416,23 @@ export class SupportWidget {
   private appendMessage(msg: Message): void {
     if (!this.messageList || !this.typingIndicator) return;
 
+    const row = document.createElement('div');
+    row.className = `ws-msg-row ${msg.sender}`;
+
+    // Avatar for agent/bot
+    if (msg.sender === 'agent' || msg.sender === 'bot') {
+      const avatar = document.createElement('div');
+      avatar.className = `ws-avatar ${msg.sender}`;
+      avatar.innerHTML = msg.sender === 'bot' ? ICON_BOT : ICON_AVATAR;
+      row.appendChild(avatar);
+    }
+
     const el = document.createElement('div');
     el.className = `ws-msg ${msg.sender}`;
 
     const content = document.createElement('div');
-    content.textContent = msg.content;
+    content.className = 'ws-msg-content';
+    content.innerHTML = this.formatMessage(msg.content);
     el.appendChild(content);
 
     if (msg.sender !== 'system') {
@@ -396,9 +442,49 @@ export class SupportWidget {
       el.appendChild(time);
     }
 
+    row.appendChild(el);
+
     // Insert before typing indicator
-    this.messageList.insertBefore(el, this.typingIndicator);
+    this.messageList.insertBefore(row, this.typingIndicator);
     this.scrollToBottom();
+  }
+
+  // ─── Message Formatting ───────────────────────────────────
+
+  private formatMessage(text: string): string {
+    // Escape HTML
+    let s = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    // Code blocks (```...```)
+    s = s.replace(/```([\s\S]*?)```/g, '<pre class="ws-code-block"><code>$1</code></pre>');
+
+    // Inline code (`...`)
+    s = s.replace(/`([^`]+)`/g, '<code class="ws-code-inline">$1</code>');
+
+    // Bold (**...**)
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic (*...*) — but not inside ** pairs
+    s = s.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+
+    // Auto-link URLs
+    s = s.replace(
+      /(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" target="_blank" rel="noopener" class="ws-link">$1</a>'
+    );
+
+    // Bullet lists (lines starting with - or • or *)
+    s = s.replace(/^[•\-\*]\s+(.+)$/gm, '<li>$1</li>');
+    s = s.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul class="ws-list">${match}</ul>`);
+
+    // Line breaks
+    s = s.replace(/\n/g, '<br>');
+
+    return s;
   }
 
   // ─── API Calls ────────────────────────────────────────────
@@ -798,6 +884,148 @@ export class SupportWidget {
     if (this.typingIndicator) {
       this.typingIndicator.classList.toggle('show', show);
       if (show) this.scrollToBottom();
+    }
+  }
+
+  // ─── Drag & Drop ───────────────────────────────────────
+
+  private initDrag(e: MouseEvent | TouchEvent): void {
+    // Don't drag if clicking on buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('.ws-header-close') || target.closest('button')) return;
+
+    e.preventDefault();
+    this.isDragging = true;
+    this.hasDragMoved = false;
+
+    const pos = 'touches' in e ? e.touches[0] : e;
+    this.dragStartX = pos.clientX;
+    this.dragStartY = pos.clientY;
+
+    // Get current window position
+    if (!this.windowX && !this.windowY && this.window) {
+      const rect = this.window.getBoundingClientRect();
+      this.windowX = rect.left;
+      this.windowY = rect.top;
+    }
+
+    this.dragBound = {
+      move: (ev: MouseEvent | TouchEvent) => this.onDrag(ev),
+      end: (ev: MouseEvent | TouchEvent) => this.endDrag(ev),
+    };
+
+    document.addEventListener('mousemove', this.dragBound.move);
+    document.addEventListener('mouseup', this.dragBound.end);
+    document.addEventListener('touchmove', this.dragBound.move, { passive: false });
+    document.addEventListener('touchend', this.dragBound.end);
+
+    this.window?.classList.add('ws-dragging');
+  }
+
+  private onDrag(e: MouseEvent | TouchEvent): void {
+    if (!this.isDragging || !this.window) return;
+    e.preventDefault();
+
+    const pos = 'touches' in e ? e.touches[0] : e;
+    const dx = pos.clientX - this.dragStartX;
+    const dy = pos.clientY - this.dragStartY;
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.hasDragMoved = true;
+    if (!this.hasDragMoved) return;
+
+    const newX = this.windowX + dx;
+    const newY = this.windowY + dy;
+
+    // Clamp to viewport
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = this.window.offsetWidth;
+    const h = this.window.offsetHeight;
+    const clampX = Math.max(0, Math.min(newX, vw - w));
+    const clampY = Math.max(0, Math.min(newY, vh - h));
+
+    this.window.style.left = clampX + 'px';
+    this.window.style.top = clampY + 'px';
+    this.window.style.right = 'auto';
+    this.window.style.bottom = 'auto';
+  }
+
+  private endDrag(_e: MouseEvent | TouchEvent): void {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+
+    if (this.window) {
+      const rect = this.window.getBoundingClientRect();
+      this.windowX = rect.left;
+      this.windowY = rect.top;
+      this.window.classList.remove('ws-dragging');
+    }
+
+    if (this.dragBound) {
+      document.removeEventListener('mousemove', this.dragBound.move);
+      document.removeEventListener('mouseup', this.dragBound.end);
+      document.removeEventListener('touchmove', this.dragBound.move);
+      document.removeEventListener('touchend', this.dragBound.end);
+      this.dragBound = null;
+    }
+  }
+
+  // ─── Resize ──────────────────────────────────────────
+
+  private initResize(e: MouseEvent | TouchEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isResizing = true;
+
+    const pos = 'touches' in e ? e.touches[0] : e;
+    this.resizeStartX = pos.clientX;
+    this.resizeStartY = pos.clientY;
+    this.resizeStartW = this.currentW;
+    this.resizeStartH = this.currentH;
+
+    this.resizeBound = {
+      move: (ev: MouseEvent | TouchEvent) => this.onResize(ev),
+      end: (ev: MouseEvent | TouchEvent) => this.endResize(ev),
+    };
+
+    document.addEventListener('mousemove', this.resizeBound.move);
+    document.addEventListener('mouseup', this.resizeBound.end);
+    document.addEventListener('touchmove', this.resizeBound.move, { passive: false });
+    document.addEventListener('touchend', this.resizeBound.end);
+
+    this.window?.classList.add('ws-resizing');
+  }
+
+  private onResize(e: MouseEvent | TouchEvent): void {
+    if (!this.isResizing || !this.window) return;
+    e.preventDefault();
+
+    const pos = 'touches' in e ? e.touches[0] : e;
+    // Resize from bottom-right: dragging right = wider, dragging down = taller
+    const dx = pos.clientX - this.resizeStartX;
+    const dy = pos.clientY - this.resizeStartY;
+
+    const newW = Math.max(320, Math.min(this.resizeStartW + dx, window.innerWidth - 40));
+    const newH = Math.max(400, Math.min(this.resizeStartH + dy, window.innerHeight - 40));
+
+    this.currentW = newW;
+    this.currentH = newH;
+    this.window.style.width = newW + 'px';
+    this.window.style.height = newH + 'px';
+  }
+
+  private endResize(_e: MouseEvent | TouchEvent): void {
+    if (!this.isResizing) return;
+    this.isResizing = false;
+
+    this.window?.classList.remove('ws-resizing');
+
+    if (this.resizeBound) {
+      document.removeEventListener('mousemove', this.resizeBound.move);
+      document.removeEventListener('mouseup', this.resizeBound.end);
+      document.removeEventListener('touchmove', this.resizeBound.move);
+      document.removeEventListener('touchend', this.resizeBound.end);
+      this.resizeBound = null;
     }
   }
 
