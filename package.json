@@ -22,7 +22,8 @@
   "scripts": {
     "build": "tsc",
     "build:cdn": "node build-cdn.js",
-    "build:all": "npm run build && npm run build:cdn",
+    "build:support": "node build-support.js",
+    "build:all": "npm run build && npm run build:cdn && npm run build:support",
     "prepublishOnly": "npm run build:all",
     "test": "vitest run",
     "test:watch": "vitest"
