@@ -18,7 +18,7 @@ export type {
 export { Channel } from './pubsub/channel.js';
 export { Presence } from './pubsub/presence.js';
 export { PubSubNamespace } from './pubsub/index.js';
-export { PushClient, type PushClientOptions, type PushPayload } from './push/index.js';
+export { PushClient, type PushClientOptions, type PushPayload, type PushSendResult } from './push/index.js';
 
 // ─── wSocket Client ────────────────────────────────────────
 
@@ -39,8 +39,8 @@ export class WSocket {
   /** Pub/Sub namespace — `client.pubsub.channel('name')` */
   public readonly pubsub: PubSubNamespace;
 
-  /** Push notifications namespace — set via `client.configurePush(options)` */
-  public push: PushClient | null = null;
+  /** Push client — lazily created, auto-configured from connection info */
+  private _push: PushClient | null = null;
 
   constructor(url: string, apiKey: string, options: WSocketOptions = {}) {
     this.url = url;
@@ -57,25 +57,38 @@ export class WSocket {
     this.pubsub = new PubSubNamespace((name) => this.channel(name));
   }
 
-  // ─── Push Configuration ──────────────────────────────────
+  // ─── Push ─────────────────────────────────────────────────
 
   /**
-   * Configure push notification access.
+   * Push notifications — auto-configured, ready to use.
    *
    * @example
    * ```ts
-   * client.configurePush({
-   *   baseUrl: 'http://localhost:9001',
-   *   token: 'your-api-key',
-   *   appId: 'your-app-id',
-   * });
+   * // Subscribe browser to channels
+   * await client.push.subscribe(['news', 'alerts']);
    *
-   * await client.push!.sendToMember('user-1', { title: 'Hello' });
+   * // Send to a member
+   * await client.push.send({ title: 'Hello' }, { to: 'user-1', channel: 'news' });
+   *
+   * // Broadcast to all
+   * await client.push.broadcast({ title: 'Hi all' });
    * ```
    */
+  get push(): PushClient {
+    if (!this._push) {
+      const httpUrl = this.url.replace(/^ws(s?)/, 'http$1');
+      this._push = new PushClient({ baseUrl: httpUrl, token: this.apiKey });
+    }
+    return this._push;
+  }
+
+  /**
+   * Configure push with custom options (overrides auto-config).
+   * Only needed if your push API uses a different URL or token.
+   */
   configurePush(options: PushClientOptions): PushClient {
-    this.push = new PushClient(options);
-    return this.push;
+    this._push = new PushClient(options);
+    return this._push;
   }
 
   // ─── Connection ──────────────────────────────────────────
