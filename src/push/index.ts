@@ -219,6 +219,19 @@ export class PushClient {
     return res.unregistered;
   }
 
+  /**
+   * Delete a specific subscription by its ID.
+   *
+   * @example
+   * ```ts
+   * await client.push.deleteSubscription('sub_abc123');
+   * ```
+   */
+  async deleteSubscription(subscriptionId: string): Promise<boolean> {
+    const res = await this.api('DELETE', `/api/push/subscriptions/${encodeURIComponent(subscriptionId)}`);
+    return res.deleted;
+  }
+
   /** Get the VAPID public key for this app */
   async getVapidKey(): Promise<string | null> {
     const qs = this.appId ? `?appId=${this.appId}` : '';
