@@ -20,9 +20,9 @@ describe('JS SDK', () => {
       expect(client.pubsub).toBeInstanceOf(PubSubNamespace);
     });
 
-    it('should have push as null by default', () => {
+    it('should auto-configure push from connection info', () => {
       const client = createClient('ws://localhost:9001', 'test-key');
-      expect(client.push).toBeNull();
+      expect(client.push).toBeInstanceOf(PushClient);
     });
 
     it('should start disconnected', () => {
@@ -63,18 +63,27 @@ describe('JS SDK', () => {
   });
 
   describe('push namespace', () => {
-    it('configurePush() should set client.push', () => {
+    it('push should be auto-configured from connection info', () => {
       const client = createClient('ws://localhost:9001', 'test-key');
-      expect(client.push).toBeNull();
+      const push = client.push;
+      expect(push).toBeInstanceOf(PushClient);
+      // Same instance on repeated access
+      expect(client.push).toBe(push);
+    });
 
-      const push = client.configurePush({
-        baseUrl: 'http://localhost:9001',
+    it('configurePush() should override auto-configured push', () => {
+      const client = createClient('ws://localhost:9001', 'test-key');
+      const autoPush = client.push;
+
+      const customPush = client.configurePush({
+        baseUrl: 'http://custom-server:9001',
         token: 'admin-token',
         appId: 'app-1',
       });
 
-      expect(push).toBeInstanceOf(PushClient);
-      expect(client.push).toBe(push);
+      expect(customPush).toBeInstanceOf(PushClient);
+      expect(client.push).toBe(customPush);
+      expect(client.push).not.toBe(autoPush);
     });
   });
 
