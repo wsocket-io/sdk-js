@@ -81,6 +81,19 @@ client.configurePush({
 });
 
 await client.push?.subscribe('alerts');
+
+// Channel targeting
+await push.addChannel('subscription-id', 'alerts');
+await push.removeChannel('subscription-id', 'alerts');
+
+// VAPID key for Web Push
+const vapidKey = await push.getVapidKey();
+
+// List subscriptions
+const subs = await push.listSubscriptions('user-123');
+
+// Delete a subscription
+await push.deleteSubscription('subscription-id');
 ```
 
 ## Requirements
