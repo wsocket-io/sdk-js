@@ -2,8 +2,15 @@
 
 Official JavaScript/TypeScript SDK for [wSocket](https://wsocket.io) — Realtime Pub/Sub, Push Notifications & Support Chat over WebSockets.
 
-[![npm](https://img.shields.io/npm/v/@wsocket-io/sdk)](https://www.npmjs.com/package/@wsocket-io/sdk)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wsocket-io/sdk?color=cb3837&logo=npm)](https://www.npmjs.com/package/@wsocket-io/sdk)
+[![npm downloads](https://img.shields.io/npm/dm/@wsocket-io/sdk?color=blue&logo=npm)](https://www.npmjs.com/package/@wsocket-io/sdk)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wsocket-io/sdk?color=green&label=bundle%20size)](https://bundlephobia.com/package/@wsocket-io/sdk)
+[![CI](https://img.shields.io/github/actions/workflow/status/wsocket-io/sdk-js/ci.yml?branch=main&logo=github&label=CI)](https://github.com/wsocket-io/sdk-js/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![jsDelivr](https://data.jsdelivr.com/v1/package/npm/@wsocket-io/sdk/badge)](https://www.jsdelivr.com/package/npm/@wsocket-io/sdk)
+[![Node.js](https://img.shields.io/node/v/@wsocket-io/sdk?color=339933&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![GitHub stars](https://img.shields.io/github/stars/wsocket-io/sdk-js?style=social)](https://github.com/wsocket-io/sdk-js)
 
 ## Installation
 
