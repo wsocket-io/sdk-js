@@ -45,11 +45,12 @@ export class Channel {
    * @returns `this` for chaining
    */
   publish(data: unknown, options?: PublishOptions): this {
+    const messageId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const msg: ClientMessage = {
       action: 'publish',
       channel: this.name,
       data,
-      id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: messageId,
     };
     if (options?.persist === false) msg.persist = false;
     this.sendFn(msg);
