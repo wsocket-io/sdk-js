@@ -6,6 +6,8 @@ import {
   Presence,
   PubSubNamespace,
   PushClient,
+  type PushSubscriptionsResult,
+  type PushSubscriptionRecord,
 } from '../src/index.js';
 
 describe('JS SDK', () => {
@@ -120,6 +122,23 @@ describe('JS SDK', () => {
       expect(PubSubNamespace).toBeDefined();
       expect(PushClient).toBeDefined();
       expect(createClient).toBeDefined();
+    });
+
+    it('should export PushSubscriptionsResult and PushSubscriptionRecord types', () => {
+      // Type-only exports — verify the shapes are usable at runtime via type assertions
+      const record: PushSubscriptionRecord = {
+        subscriptionId: 'sub_1',
+        memberId: 'user-1',
+        platform: 'web',
+        channels: ['news'],
+        createdAt: Date.now(),
+      };
+      const result: PushSubscriptionsResult = {
+        subscriptions: [record],
+        total: 1,
+      };
+      expect(result.subscriptions).toHaveLength(1);
+      expect(result.total).toBe(1);
     });
   });
 });

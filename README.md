@@ -21,7 +21,7 @@ npm install @wsocket-io/sdk
 ### CDN (Browser)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@wsocket-io/sdk@0.3.2/dist/wsocket.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@wsocket-io/sdk@1.0.0/dist/wsocket.min.js"></script>
 ```
 
 ## Quick Start

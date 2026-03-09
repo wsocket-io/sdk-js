@@ -33,6 +33,28 @@ export interface PushSendResult {
   results: { subscriptionId: string; memberId: string; platform: string; success: boolean; error?: string }[];
 }
 
+/** A single push subscription record */
+export interface PushSubscriptionRecord {
+  /** Unique subscription identifier */
+  subscriptionId: string;
+  /** Member the subscription belongs to */
+  memberId: string;
+  /** Push platform */
+  platform: 'web' | 'fcm' | 'apns';
+  /** Channels this subscription is enrolled in */
+  channels: string[];
+  /** Unix timestamp (ms) when the subscription was created */
+  createdAt: number;
+}
+
+/** Result of {@link PushClient.listSubscriptions} */
+export interface PushSubscriptionsResult {
+  /** List of matching subscriptions */
+  subscriptions: PushSubscriptionRecord[];
+  /** Total number of matching subscriptions (may exceed the page) */
+  total: number;
+}
+
 export class PushClient {
   private baseUrl: string;
   private token: string;
@@ -232,19 +254,31 @@ export class PushClient {
     return res.deleted;
   }
 
-  /** Get the VAPID public key for this app */
+  /**
+   * Get the VAPID public key for this app.
+   *
+   * @returns The VAPID public key string, or `null` if not configured
+   */
   async getVapidKey(): Promise<string | null> {
     const qs = this.appId ? `?appId=${this.appId}` : '';
     const res = await this.api('GET', `/api/push/vapid-key${qs}`);
     return res.vapidPublicKey || null;
   }
 
-  /** List push subscriptions */
+  /**
+   * List push subscriptions, optionally filtered by member and/or platform.
+   *
+   * @param options - Filter options
+   * @param options.memberId - Return only subscriptions for this member
+   * @param options.platform - Return only subscriptions for this platform
+   * @param options.limit - Maximum number of subscriptions to return
+   * @returns Matching subscriptions and total count
+   */
   async listSubscriptions(options?: {
     memberId?: string;
     platform?: 'web' | 'fcm' | 'apns';
     limit?: number;
-  }): Promise<unknown> {
+  }): Promise<PushSubscriptionsResult> {
     const params = new URLSearchParams();
     if (options?.memberId) params.set('memberId', options.memberId);
     if (options?.platform) params.set('platform', options.platform);

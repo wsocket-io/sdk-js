@@ -18,10 +18,22 @@ export type {
 export { Channel } from './pubsub/channel.js';
 export { Presence } from './pubsub/presence.js';
 export { PubSubNamespace } from './pubsub/index.js';
-export { PushClient, type PushClientOptions, type PushPayload, type PushSendResult } from './push/index.js';
+export { PushClient, type PushClientOptions, type PushPayload, type PushSendResult, type PushSubscriptionRecord, type PushSubscriptionsResult } from './push/index.js';
 
 // ─── wSocket Client ────────────────────────────────────────
 
+/**
+ * wSocket realtime client.
+ *
+ * Create via the {@link createClient} factory or the constructor directly:
+ *
+ * ```ts
+ * import { createClient } from '@wsocket/sdk';
+ *
+ * const client = createClient('wss://node00.wsocket.online', 'your-api-key');
+ * await client.connect();
+ * ```
+ */
 export class WSocket {
   private ws: WebSocket | null = null;
   private url: string;
@@ -42,6 +54,13 @@ export class WSocket {
   /** Push client — lazily created, auto-configured from connection info */
   private _push: PushClient | null = null;
 
+  /**
+   * Create a new wSocket client.
+   *
+   * @param url - WebSocket server URL (e.g. `wss://node00.wsocket.online`)
+   * @param apiKey - API key for authentication
+   * @param options - Optional connection options
+   */
   constructor(url: string, apiKey: string, options: WSocketOptions = {}) {
     this.url = url;
     this.apiKey = apiKey;
@@ -85,6 +104,9 @@ export class WSocket {
   /**
    * Configure push with custom options (overrides auto-config).
    * Only needed if your push API uses a different URL or token.
+   *
+   * @param options - Custom push client options
+   * @returns The newly created {@link PushClient}
    */
   configurePush(options: PushClientOptions): PushClient {
     this._push = new PushClient(options);
@@ -93,7 +115,11 @@ export class WSocket {
 
   // ─── Connection ──────────────────────────────────────────
 
-  /** Connect to the wSocket server */
+  /**
+   * Connect to the wSocket server.
+   *
+   * @returns A promise that resolves when the connection is established
+   */
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.state === 'connected') {
@@ -161,8 +187,10 @@ export class WSocket {
   // ─── Channels ────────────────────────────────────────────
 
   /**
-   * Get or create a channel.
-   * @deprecated Use `client.pubsub.channel(name)` for new code.
+   * Get or create a channel by name.
+   *
+   * @param name - Channel name
+   * @returns The {@link Channel} instance for the given name
    */
   channel(name: string): Channel {
     if (!this.channels.has(name)) {
@@ -173,7 +201,16 @@ export class WSocket {
 
   // ─── Events ──────────────────────────────────────────────
 
-  /** Listen for client events: 'connected', 'disconnected', 'error', 'state' */
+  /**
+   * Listen for client events.
+   *
+   * Supported events: `'connected'`, `'disconnected'`, `'reconnecting'`, `'error'`, `'state'`,
+   * `'subscribed'`, `'unsubscribed'`, `'ack'`
+   *
+   * @param event - Event name
+   * @param callback - Event handler
+   * @returns `this` for chaining
+   */
   on(event: string, callback: EventCallback): this {
     if (!this.events.has(event)) {
       this.events.set(event, new Set());
@@ -182,13 +219,23 @@ export class WSocket {
     return this;
   }
 
-  /** Remove an event listener */
+  /**
+   * Remove a previously registered event listener.
+   *
+   * @param event - Event name
+   * @param callback - The same callback reference passed to {@link on}
+   * @returns `this` for chaining
+   */
   off(event: string, callback: EventCallback): this {
     this.events.get(event)?.delete(callback);
     return this;
   }
 
-  /** Current connection state */
+  /**
+   * Current connection state.
+   *
+   * @returns `'disconnected'` | `'connecting'` | `'connected'` | `'reconnecting'`
+   */
   get connectionState(): ConnectionState {
     return this.state;
   }
