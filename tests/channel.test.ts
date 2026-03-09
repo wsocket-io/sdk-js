@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 import { Channel } from '../src/pubsub/channel.js';
 import type { ClientMessage, MessageMeta } from '../src/types.js';
 
