@@ -426,7 +426,7 @@ describe('WSocket', () => {
     });
 
     it('ignores invalid JSON', async () => {
-      const client = await connectClient();
+      await connectClient();
       expect(() => {
         getLastInstance().simulateMessage('not-json');
       }).not.toThrow();
@@ -593,7 +593,6 @@ describe('WSocket', () => {
       // Subscribe to a channel (triggers subscribe message)
       client.channel('chat').subscribe(() => {});
       const ws1 = getLastInstance();
-      const sendCallsBefore = ws1.send.mock.calls.length;
 
       // Disconnect to trigger reconnect
       ws1.simulateClose(1006);
