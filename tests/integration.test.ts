@@ -21,10 +21,6 @@ function stopServer(wss: WebSocketServer): Promise<void> {
   return new Promise((resolve) => wss.close(() => resolve()));
 }
 
-function waitForEvent<T = unknown>(emitter: { on: (e: string, cb: (...args: any[]) => void) => void }, event: string): Promise<T> {
-  return new Promise((resolve) => emitter.on(event, (...args: unknown[]) => resolve(args[0] as T)));
-}
-
 // ─── Tests ──────────────────────────────────────────────────
 
 describe('WSocket integration', () => {
