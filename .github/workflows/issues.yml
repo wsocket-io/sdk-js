@@ -9,7 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  # ─── Auto-label issues based on title/body keywords ────────
   auto-label:
     runs-on: ubuntu-latest
     if: github.event.action == 'opened'
@@ -19,166 +18,127 @@ jobs:
         with:
           script: |
             const issue = context.payload.issue;
-            const text = `${issue.title} ${issue.body || ''}`.toLowerCase();
+            const text = (issue.title + ' ' + (issue.body || '')).toLowerCase();
             const labels = [];
 
-            // Category labels
-            if (text.match(/bug|error|crash|broken|fix|fail|exception|throw/)) labels.push('bug');
-            if (text.match(/feature|request|enhancement|add|support|implement/)) labels.push('enhancement');
-            if (text.match(/doc|readme|example|tutorial|typo/)) labels.push('documentation');
-            if (text.match(/question|how to|help|usage|clarif/)) labels.push('question');
-            if (text.match(/security|vulnerab|cve|xss|injection/)) labels.push('security');
+            if (/bug|error|crash|broken|fix|fail|exception|throw/.test(text)) labels.push('bug');
+            if (/feature|request|enhancement|add support|implement/.test(text)) labels.push('enhancement');
+            if (/doc|readme|example|tutorial|typo/.test(text)) labels.push('documentation');
+            if (/question|how to|help|usage|clarif/.test(text)) labels.push('question');
+            if (/security|vulnerab|cve|xss|injection/.test(text)) labels.push('security');
+            if (/push|notification|vapid|fcm|apns|service.worker/.test(text)) labels.push('push');
+            if (/pubsub|channel|subscribe|publish|message/.test(text)) labels.push('pubsub');
+            if (/presence|online|member|enter|leave/.test(text)) labels.push('presence');
+            if (/history|replay|recover/.test(text)) labels.push('history');
+            if (/reconnect|disconnect|connection|websocket/.test(text)) labels.push('connection');
+            if (/cdn|browser|bundle|umd|esm|import/.test(text)) labels.push('bundling');
+            if (/typescript|type|typing|\.d\.ts/.test(text)) labels.push('typescript');
+            if (/support.chat|widget|embed/.test(text)) labels.push('support-chat');
+            if (/urgent|critical|blocker|production|p0|asap/.test(text)) labels.push('priority: high');
 
-            // Component labels
-            if (text.match(/push|notification|vapid|fcm|apns|service.worker/)) labels.push('push');
-            if (text.match(/pubsub|channel|subscribe|publish|message/)) labels.push('pubsub');
-            if (text.match(/presence|online|member|enter|leave/)) labels.push('presence');
-            if (text.match(/history|replay|recover/)) labels.push('history');
-            if (text.match(/reconnect|disconnect|connection|websocket|ws/)) labels.push('connection');
-            if (text.match(/cdn|browser|bundle|umd|esm|import/)) labels.push('bundling');
-            if (text.match(/typescript|type|typing|types|\.d\.ts/)) labels.push('typescript');
-            if (text.match(/support.chat|widget|embed/)) labels.push('support-chat');
+            if (labels.length === 0) return;
 
-            // Priority hints
-            if (text.match(/urgent|critical|blocker|production|p0|asap/)) labels.push('priority: high');
+            const colors = {
+              bug: 'd73a4a', enhancement: 'a2eeef', documentation: '0075ca',
+              question: 'd876e3', security: 'e4e669', push: 'f9d0c4',
+              pubsub: 'bfdadc', presence: 'c5def5', history: 'fbca04',
+              connection: 'b60205', bundling: 'fef2c0', typescript: '3178c6',
+              'support-chat': 'cfd3d7', 'priority: high': 'b60205',
+            };
 
-            if (labels.length > 0) {
-              // Ensure labels exist
-              for (const label of labels) {
-                try {
-                  await github.rest.issues.getLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: label,
-                  });
-                } catch {
-                  const colors = {
-                    'bug': 'd73a4a', 'enhancement': 'a2eeef', 'documentation': '0075ca',
-                    'question': 'd876e3', 'security': 'e4e669', 'push': 'f9d0c4',
-                    'pubsub': 'bfdadc', 'presence': 'c5def5', 'history': 'fbca04',
-                    'connection': 'b60205', 'bundling': 'fef2c0', 'typescript': '3178c6',
-                    'support-chat': 'cfd3d7', 'priority: high': 'b60205',
-                  };
-                  await github.rest.issues.createLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: label,
-                    color: colors[label] || 'ededed',
-                  });
-                }
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: label });
+              } catch {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  name: label, color: colors[label] || 'ededed',
+                });
               }
-
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                labels,
-              });
             }
 
-  # ─── Auto-respond to new issues ────────────────────────────
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: issue.number, labels,
+            });
+
   auto-respond:
     runs-on: ubuntu-latest
     if: github.event.action == 'opened'
     steps:
       - uses: actions/checkout@v4
-
       - name: Respond to issue
         uses: actions/github-script@v7
         with:
           script: |
-            const issue = context.payload.issue;
-            const title = issue.title.toLowerCase();
-            const body = (issue.body || '').toLowerCase();
-            const text = `${title} ${body}`;
-            const author = issue.user.login;
-
-            // Read package.json for version info
             const fs = require('fs');
+            const issue = context.payload.issue;
+            const text = (issue.title + ' ' + (issue.body || '')).toLowerCase();
+            const author = issue.user.login;
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = pkg.version;
+            const v = pkg.version;
+            let msg = '';
 
-            let response = '';
-
-            // ── Bug reports ─────────────────────────────────
-            if (text.match(/bug|error|crash|broken|fail|exception/)) {
-              response = `Thanks for reporting this issue, @${author}! 🐛
-
-We'll take a look as soon as possible. To help us investigate faster, please make sure you've included:
-
-- **SDK version**: \`npm ls @wsocket-io/sdk\` (latest is **v${version}**)
-- **Node.js / Browser version**
-- **Steps to reproduce**
-- **Expected vs actual behavior**
-- **Error message / stack trace** (if applicable)
-
-If you're on an older version, try upgrading first:
-\`\`\`bash
-npm install @wsocket-io/sdk@latest
-\`\`\`
-
-We'll update this issue once we've triaged it.`;
-            }
-
-            // ── Feature requests ────────────────────────────
-            else if (text.match(/feature|request|enhancement|add|support|implement/)) {
-              response = `Thanks for the feature request, @${author}! ✨
-
-We appreciate your ideas for improving the SDK. We'll review this and consider it for an upcoming release.
-
-A few things that help us prioritize:
-- **Use case**: What problem does this solve?
-- **API sketch**: How would you expect to use it?
-- **Workaround**: Is there a current workaround?
-
-Current version: **v${version}** | [Changelog](https://github.com/wsocket-io/sdk-js/releases)`;
-            }
-
-            // ── Questions / how-to ──────────────────────────
-            else if (text.match(/question|how to|help|usage|clarif/)) {
-              response = `Hi @${author}! 👋
-
-Thanks for reaching out. Here are some resources that might help:
-
-- 📖 [README & API Reference](https://github.com/wsocket-io/sdk-js#readme)
-- 📦 [npm package](https://www.npmjs.com/package/@wsocket-io/sdk)
-- 🌐 [Documentation](https://docs.wsocket.io)
-- 💬 [Examples](https://examples.wsocket.io)
-
-If these don't answer your question, we'll follow up here shortly. Current SDK version: **v${version}**.`;
-            }
-
-            // ── Security issues ─────────────────────────────
-            else if (text.match(/security|vulnerab|cve/)) {
-              response = `Thanks for reporting this, @${author}. 🔒
-
-For security vulnerabilities, please consider reporting them privately via [GitHub Security Advisories](https://github.com/wsocket-io/sdk-js/security/advisories/new) instead of a public issue.
-
-We take security seriously and will investigate promptly.`;
-            }
-
-            // ── Generic response ────────────────────────────
-            else {
-              response = `Thanks for opening this issue, @${author}! 👋
-
-We'll review it and get back to you. In the meantime, make sure you're on the latest version (**v${version}**):
-
-\`\`\`bash
-npm install @wsocket-io/sdk@latest
-\`\`\`
-
-- 📖 [Documentation](https://github.com/wsocket-io/sdk-js#readme)
-- 🌐 [Docs site](https://docs.wsocket.io)`;
+            if (/bug|error|crash|broken|fail|exception/.test(text)) {
+              msg = [
+                'Thanks for reporting this issue, @' + author + '! \uD83D\uDC1B',
+                '',
+                'To help us investigate faster, please include:',
+                '- **SDK version**: `npm ls @wsocket-io/sdk` (latest is **v' + v + '**)',
+                '- **Node.js / Browser version**',
+                '- **Steps to reproduce**',
+                '- **Expected vs actual behavior**',
+                '- **Error message / stack trace**',
+                '',
+                'Try upgrading first: `npm install @wsocket-io/sdk@latest`',
+              ].join('\n');
+            } else if (/feature|request|enhancement|implement/.test(text)) {
+              msg = [
+                'Thanks for the feature request, @' + author + '! \u2728',
+                '',
+                'To help us prioritize:',
+                '- **Use case**: What problem does this solve?',
+                '- **API sketch**: How would you expect to use it?',
+                '- **Workaround**: Is there a current workaround?',
+                '',
+                'Current version: **v' + v + '** | [Changelog](https://github.com/wsocket-io/sdk-js/releases)',
+              ].join('\n');
+            } else if (/question|how to|help|usage|clarif/.test(text)) {
+              msg = [
+                'Hi @' + author + '! \uD83D\uDC4B',
+                '',
+                'Here are some resources that might help:',
+                '- [README & API Reference](https://github.com/wsocket-io/sdk-js#readme)',
+                '- [npm package](https://www.npmjs.com/package/@wsocket-io/sdk)',
+                '- [Documentation](https://docs.wsocket.io)',
+                '- [Examples](https://examples.wsocket.io)',
+                '',
+                'Current SDK version: **v' + v + '**.',
+              ].join('\n');
+            } else if (/security|vulnerab|cve/.test(text)) {
+              msg = [
+                'Thanks for reporting this, @' + author + '. \uD83D\uDD12',
+                '',
+                'For security vulnerabilities, please report them privately via',
+                '[GitHub Security Advisories](https://github.com/wsocket-io/sdk-js/security/advisories/new).',
+              ].join('\n');
+            } else {
+              msg = [
+                'Thanks for opening this issue, @' + author + '! \uD83D\uDC4B',
+                '',
+                'We will review it and get back to you.',
+                'Make sure you are on the latest version (**v' + v + '**): `npm install @wsocket-io/sdk@latest`',
+                '',
+                '- [Documentation](https://github.com/wsocket-io/sdk-js#readme)',
+                '- [Docs site](https://docs.wsocket.io)',
+              ].join('\n');
             }
 
             await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              body: response,
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: issue.number, body: msg,
             });
 
-  # ─── Stale issue management ────────────────────────────────
   stale-check:
     runs-on: ubuntu-latest
     if: github.event.action == 'labeled'
@@ -189,9 +149,7 @@ npm install @wsocket-io/sdk@latest
         with:
           script: |
             await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: context.repo.owner, repo: context.repo.repo,
               issue_number: context.payload.issue.number,
-              state: 'closed',
-              state_reason: 'not_planned',
+              state: 'closed', state_reason: 'not_planned',
             });
