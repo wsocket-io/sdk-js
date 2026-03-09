@@ -156,8 +156,12 @@ export class WSocket {
         this.stopPing();
         this.emit('disconnected', code);
 
-        if (this.state !== 'disconnected' && this.options.autoReconnect) {
-          this.scheduleReconnect();
+        if (this.state !== 'disconnected') {
+          if (this.options.autoReconnect) {
+            this.scheduleReconnect();
+          } else {
+            this.setState('disconnected');
+          }
         }
       });
 

@@ -26,7 +26,8 @@
     "build:all": "npm run build && npm run build:cdn && npm run build:support",
     "prepublishOnly": "npm run build:all",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "websocket",
