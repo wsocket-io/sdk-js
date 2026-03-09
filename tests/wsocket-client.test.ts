@@ -415,7 +415,7 @@ describe('WSocket', () => {
     });
 
     it('ignores messages for unknown channels', async () => {
-      const client = await connectClient();
+      await connectClient();
       expect(() => {
         getLastInstance().simulateMessage(JSON.stringify({
           action: 'message',
