@@ -12,49 +12,88 @@ export class Presence {
     private sendFn: (msg: ClientMessage) => void,
   ) {}
 
-  /** Enter presence set with optional data */
+  /**
+   * Enter the presence set with optional custom state data.
+   *
+   * @param data - Optional key/value state to associate with this member
+   * @returns `this` for chaining
+   */
   enter(data?: Record<string, unknown>): this {
     this.sendFn({ action: 'presence.enter', channel: this.channelName, data });
     return this;
   }
 
-  /** Leave presence set */
+  /**
+   * Leave the presence set.
+   *
+   * @returns `this` for chaining
+   */
   leave(): this {
     this.sendFn({ action: 'presence.leave', channel: this.channelName });
     return this;
   }
 
-  /** Update presence data */
+  /**
+   * Update your presence state data.
+   *
+   * @param data - New key/value state to associate with this member
+   * @returns `this` for chaining
+   */
   update(data: Record<string, unknown>): this {
     this.sendFn({ action: 'presence.update', channel: this.channelName, data });
     return this;
   }
 
-  /** Get current members */
+  /**
+   * Request the current member list for this channel.
+   * Listen for the result with {@link onMembers}.
+   *
+   * @returns `this` for chaining
+   */
   get(): this {
     this.sendFn({ action: 'presence.get', channel: this.channelName });
     return this;
   }
 
-  /** Listen for members entering */
+  /**
+   * Listen for members entering the presence set.
+   *
+   * @param cb - Called with the entering member's data
+   * @returns `this` for chaining
+   */
   onEnter(cb: (member: PresenceMember) => void): this {
     this.enterListeners.add(cb);
     return this;
   }
 
-  /** Listen for members leaving */
+  /**
+   * Listen for members leaving the presence set.
+   *
+   * @param cb - Called with the leaving member's data
+   * @returns `this` for chaining
+   */
   onLeave(cb: (member: PresenceMember) => void): this {
     this.leaveListeners.add(cb);
     return this;
   }
 
-  /** Listen for presence data updates */
+  /**
+   * Listen for presence state updates from members.
+   *
+   * @param cb - Called with the updated member's data
+   * @returns `this` for chaining
+   */
   onUpdate(cb: (member: PresenceMember) => void): this {
     this.updateListeners.add(cb);
     return this;
   }
 
-  /** Listen for member list response */
+  /**
+   * Listen for the current member list (response to {@link get}).
+   *
+   * @param cb - Called with the full list of present members
+   * @returns `this` for chaining
+   */
   onMembers(cb: (members: PresenceMember[]) => void): this {
     this.membersListeners.add(cb);
     return this;

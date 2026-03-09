@@ -13,7 +13,14 @@ export class Channel {
     this.presence = new Presence(name, sendFn);
   }
 
-  /** Subscribe to messages on this channel */
+  /**
+   * Subscribe to messages on this channel.
+   *
+   * @param callback - Handler called for each received message
+   * @param options - Optional subscribe options
+   * @param options.rewind - Number of past messages to replay on subscribe
+   * @returns `this` for chaining
+   */
   subscribe(callback: (data: unknown, meta: MessageMeta) => void, options?: { rewind?: number }): this {
     if (!this.listeners.has('message')) {
       this.listeners.set('message', new Set());
@@ -30,7 +37,13 @@ export class Channel {
     return this;
   }
 
-  /** Publish data to this channel */
+  /**
+   * Publish data to this channel.
+   *
+   * @param data - Message payload
+   * @param options - Publish options
+   * @returns `this` for chaining
+   */
   publish(data: unknown, options?: PublishOptions): this {
     const msg: ClientMessage = {
       action: 'publish',
@@ -43,7 +56,13 @@ export class Channel {
     return this;
   }
 
-  /** Query message history for this channel */
+  /**
+   * Query message history for this channel.
+   * Listen for results with {@link onHistory}.
+   *
+   * @param options - Query options (limit, before, after, direction)
+   * @returns `this` for chaining
+   */
   history(options?: HistoryOptions): this {
     const msg: ClientMessage = {
       action: 'history',
@@ -57,7 +76,12 @@ export class Channel {
     return this;
   }
 
-  /** Listen for history query results */
+  /**
+   * Listen for history query results.
+   *
+   * @param callback - Handler called with the history result
+   * @returns `this` for chaining
+   */
   onHistory(callback: (result: HistoryResult) => void): this {
     if (!this.listeners.has('history')) {
       (this.listeners as any).set('history', new Set<(result: HistoryResult) => void>());
@@ -76,7 +100,7 @@ export class Channel {
     }
   }
 
-  /** Unsubscribe from this channel */
+  /** Unsubscribe from this channel and remove all message listeners */
   unsubscribe(): void {
     this.sendFn({ action: 'unsubscribe', channel: this.name });
     this.subscribed = false;
@@ -108,6 +132,7 @@ export class Channel {
     return !!listeners && listeners.size > 0;
   }
 
+  /** Whether this channel is currently subscribed on the server */
   get isSubscribed(): boolean {
     return this.subscribed;
   }
