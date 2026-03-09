@@ -17,8 +17,17 @@ function startServer(port: number): { wss: WebSocketServer; clients: WsWebSocket
   return { wss, clients };
 }
 
-function stopServer(wss: WebSocketServer): Promise<void> {
-  return new Promise((resolve) => wss.close(() => resolve()));
+function stopServer(wss: WebSocketServer, clients: WsWebSocket[]): Promise<void> {
+  return new Promise((resolve) => {
+    for (const client of clients) {
+      try {
+        client.terminate();
+      } catch {
+        // ignore client close errors during teardown
+      }
+    }
+    wss.close(() => resolve());
+  });
 }
 
 // ─── Tests ──────────────────────────────────────────────────
@@ -35,7 +44,7 @@ describe('WSocket integration', () => {
   });
 
   afterEach(async () => {
-    await stopServer(wss);
+    await stopServer(wss, serverClients);
   });
 
   // ─── connect / disconnect ──────────────────────────────────
