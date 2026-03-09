@@ -1,0 +1,29 @@
+name: Stale Issues
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity.
+            It will be closed in 14 days if no further activity occurs.
+
+            If this is still relevant, please comment or remove the `stale` label.
+          close-issue-message: |
+            This issue was closed automatically due to inactivity.
+            Feel free to reopen if this is still relevant.
+          stale-issue-label: 'stale'
+          days-before-stale: 30
+          days-before-close: 14
+          exempt-issue-labels: 'bug,security,priority: high,pinned'
+          operations-per-run: 30
