@@ -479,7 +479,6 @@ describe('WSocket', () => {
       }));
       // Connect again to verify resume token is used
       client.disconnect();
-      const ws = getLastInstance();
 
       const p2 = client.connect();
       getLastInstance().simulateOpen();
