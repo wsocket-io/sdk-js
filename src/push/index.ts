@@ -223,6 +223,17 @@ export class PushClient {
     }
 
     if (options?.channels) body.channels = options.channels;
+
+    // Collect browser metadata when running in a browser environment
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      body.metadata = {
+        language: navigator.language || undefined,
+        timezone: typeof Intl !== 'undefined'
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : undefined,
+      };
+    }
+
     const res = await this.api('POST', '/api/push/register', body);
     return res.subscriptionId;
   }
