@@ -231,6 +231,7 @@ export class PushClient {
         timezone: typeof Intl !== 'undefined'
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
           : undefined,
+        pageUrl: window.location.href || undefined,
       };
     }
 
